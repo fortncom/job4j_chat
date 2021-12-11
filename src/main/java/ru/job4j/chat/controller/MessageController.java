@@ -22,7 +22,6 @@ public class MessageController {
     }
 
     @GetMapping("")
-    @ResponseBody
     public List<Message> findByRoomName(@RequestParam String name) {
         return StreamSupport.stream(
                 this.messageRepository.findByRoom(name).spliterator(), false

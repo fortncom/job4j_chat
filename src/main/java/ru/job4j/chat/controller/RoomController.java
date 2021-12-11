@@ -1,31 +1,57 @@
 package ru.job4j.chat.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
+import ru.job4j.chat.model.Message;
 import ru.job4j.chat.model.Room;
 import ru.job4j.chat.repository.RoomRepository;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-@RestController
+@Controller
 @RequestMapping("/room")
 public class RoomController {
 
+    private static final String API = "http://localhost:8080/message";
+
     private final RoomRepository roomRepository;
 
-    public RoomController(final RoomRepository roomRepository) {
+    private final RestTemplate restTemplate;
+
+    public RoomController(final RoomRepository roomRepository, RestTemplate restTemplate) {
         this.roomRepository = roomRepository;
+        this.restTemplate = restTemplate;
+    }
+
+    @GetMapping("/messages")
+    @ResponseBody
+    public List<Message> findMessageByRoom(@RequestParam String name) {
+        HttpServletRequest request = ((ServletRequestAttributes)
+                RequestContextHolder.currentRequestAttributes()).getRequest();
+        String token = request.getHeader("Authorization");
+        return restTemplate.exchange(RequestEntity
+                .method(HttpMethod.GET, API + "?name=" + name)
+                .header("Authorization", token)
+                        .build(),
+                new ParameterizedTypeReference<List<Message>>() { }
+        ).getBody();
     }
 
     @GetMapping("/")
-    public List<Room> findAll() {
-        return StreamSupport.stream(
-                this.roomRepository.findAll().spliterator(), false
-        ).collect(Collectors.toList());
+    public ResponseEntity<List<Room>> findAll() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(StreamSupport.stream(roomRepository.findAll().spliterator(),
+                        false).collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")

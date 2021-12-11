@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import ru.job4j.chat.exception.UserValidateException;
 import ru.job4j.chat.model.Person;
 import ru.job4j.chat.repository.PersonRepository;
 
@@ -33,15 +35,17 @@ public class PersonController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Person> findById(@PathVariable int id) {
-        var person = this.personRepository.findById(id);
+        validateId(id);
         return new ResponseEntity<>(
-                person.orElse(new Person()),
-                person.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
-        );
+                this.personRepository.findById(id).orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            String.format("Person with id %s not found.", id))),
+               HttpStatus.OK);
     }
 
     @PostMapping("/sign-up")
     public ResponseEntity<Person> create(@RequestBody Person person) {
+        validatePerson(person);
         person.setPassword(encoder.encode(person.getPassword()));
         return new ResponseEntity<>(
                 this.personRepository.save(person),
@@ -51,15 +55,32 @@ public class PersonController {
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Person person) {
+        validatePerson(person);
         this.personRepository.save(person);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
+        validateId(id);
         Person person = new Person();
         person.setId(id);
         this.personRepository.delete(person);
         return ResponseEntity.ok().build();
+    }
+
+    private void validatePerson(Person person) {
+        if (person.getLogin().length() < 3) {
+            throw new UserValidateException("Person: login must be more than 3 characters");
+        }
+        if (person.getLogin() == null || person.getPassword() == null) {
+            throw new NullPointerException("Person: login and password mustn't be empty");
+        }
+    }
+
+    private void validateId(int id) {
+        if (id < 1) {
+            throw new IllegalArgumentException("Person id must not be less than 1");
+        }
     }
 }

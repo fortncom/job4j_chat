@@ -3,6 +3,7 @@ package ru.job4j.chat.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.model.Message;
 import ru.job4j.chat.repository.MessageRepository;
 
@@ -37,15 +38,17 @@ public class MessageController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Message> findById(@PathVariable int id) {
-        var person = this.messageRepository.findById(id);
+        validateId(id);
         return new ResponseEntity<>(
-                person.orElse(new Message()),
-                person.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
-        );
+                this.messageRepository.findById(id).orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                String.format("Message with id %s not found.", id))),
+                HttpStatus.OK);
     }
 
     @PostMapping("/")
     public ResponseEntity<Message> create(@RequestBody Message message) {
+        validateMessage(message);
         return new ResponseEntity<>(
                 this.messageRepository.save(message),
                 HttpStatus.CREATED
@@ -54,15 +57,30 @@ public class MessageController {
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Message message) {
+        validateMessage(message);
         this.messageRepository.save(message);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
+        validateId(id);
         Message message = new Message();
         message.setId(id);
         this.messageRepository.delete(message);
         return ResponseEntity.ok().build();
+    }
+
+    private void validateMessage(Message message) {
+        if (message.getMessage() == null || message.getPerson() == null
+                || message.getRoom() == null) {
+            throw new NullPointerException("Message: message and person and room mustn't be empty");
+        }
+    }
+
+    private void validateId(int id) {
+        if (id < 1) {
+            throw new IllegalArgumentException("Message id must not be less than 1");
+        }
     }
 }

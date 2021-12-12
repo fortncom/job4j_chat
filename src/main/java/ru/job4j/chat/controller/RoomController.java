@@ -8,12 +8,16 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
-import ru.job4j.chat.model.Message;
-import ru.job4j.chat.model.Room;
-import ru.job4j.chat.repository.RoomRepository;
+import ru.job4j.chat.model.domain.Message;
+import ru.job4j.chat.model.domain.Room;
+import ru.job4j.chat.model.dto.RoomDTO;
+import ru.job4j.chat.service.PersonService;
+import ru.job4j.chat.service.RoomService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -23,13 +27,16 @@ public class RoomController {
 
     private static final String API = "http://localhost:8080/message";
 
-    private final RoomRepository roomRepository;
-
     private final RestTemplate restTemplate;
 
-    public RoomController(final RoomRepository roomRepository, RestTemplate restTemplate) {
-        this.roomRepository = roomRepository;
+    private final RoomService roomService;
+    private final PersonService personService;
+
+    public RoomController(final RoomService roomService,
+                          RestTemplate restTemplate, PersonService personService) {
+        this.roomService = roomService;
         this.restTemplate = restTemplate;
+        this.personService = personService;
     }
 
     @GetMapping("/messages")
@@ -50,15 +57,14 @@ public class RoomController {
     public ResponseEntity<List<Room>> findAll() {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StreamSupport.stream(roomRepository.findAll().spliterator(),
+                .body(StreamSupport.stream(roomService.findAll().spliterator(),
                         false).collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Room> findById(@PathVariable int id) {
-        validateId(id);
         return new ResponseEntity<>(
-                this.roomRepository.findById(id).orElseThrow(
+                this.roomService.findById(id).orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 String.format("Room with id %s not found.", id))),
                 HttpStatus.OK);
@@ -66,38 +72,37 @@ public class RoomController {
 
     @PostMapping("/")
     public ResponseEntity<Room> create(@RequestBody Room room) {
-        validateRoom(room);
         return new ResponseEntity<>(
-                this.roomRepository.save(room),
+                this.roomService.create(room),
                 HttpStatus.CREATED
         );
     }
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Room room) {
-        validateRoom(room);
-        this.roomRepository.save(room);
+        roomService.update(room);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        validateId(id);
-        Room room = new Room();
-        room.setId(id);
-        this.roomRepository.delete(room);
+        roomService.delete(id);
         return ResponseEntity.ok().build();
     }
 
-    private void validateRoom(Room room) {
-        if (room.getName() == null || room.getOwner() == null) {
-            throw new NullPointerException("Room: name and owner mustn't be empty");
+    @PatchMapping("/patch")
+    public ResponseEntity<RoomDTO> patch(@RequestBody RoomDTO dto)
+            throws InvocationTargetException, IllegalAccessException {
+        Optional<Room> target = roomService.findById(dto.getId());
+        if (target.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Message not found");
         }
-    }
-
-    private void validateId(int id) {
-        if (id < 1) {
-            throw new IllegalArgumentException("Room id must not be less than 1");
-        }
+        Room current = target.get();
+        Optional.of(dto.getName()).ifPresent(current::setName);
+        Optional.of(dto.getOwnerId()).ifPresent(
+               id -> personService.findById(id).ifPresentOrElse(
+                       current::setOwner, () -> dto.setOwnerId(current.getOwner().getId())));
+        roomService.update(current);
+        return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 }

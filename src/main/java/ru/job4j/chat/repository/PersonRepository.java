@@ -2,7 +2,7 @@ package ru.job4j.chat.repository;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
-import ru.job4j.chat.model.Person;
+import ru.job4j.chat.model.domain.Person;
 
 import java.util.Optional;
 

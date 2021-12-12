@@ -4,42 +4,45 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import ru.job4j.chat.model.Message;
-import ru.job4j.chat.repository.MessageRepository;
+import ru.job4j.chat.model.domain.Message;
+import ru.job4j.chat.model.dto.MessageDTO;
+import ru.job4j.chat.service.MessageService;
+import ru.job4j.chat.service.PersonService;
+import ru.job4j.chat.service.RoomService;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/message")
 public class MessageController {
 
-    private final MessageRepository messageRepository;
+    private final MessageService messageService;
+    private final PersonService personService;
+    private final RoomService roomService;
 
-    public MessageController(final MessageRepository messageRepository) {
-        this.messageRepository = messageRepository;
+    public MessageController(final MessageService messageService,
+            final PersonService personService, final RoomService roomService) {
+        this.messageService = messageService;
+        this.personService = personService;
+        this.roomService = roomService;
     }
 
     @GetMapping("")
     public List<Message> findByRoomName(@RequestParam String name) {
-        return StreamSupport.stream(
-                this.messageRepository.findByRoom(name).spliterator(), false
-        ).collect(Collectors.toList());
+        return messageService.findByRoomName(name);
     }
 
     @GetMapping("/")
     public List<Message> findAll() {
-        return StreamSupport.stream(
-                this.messageRepository.findAll().spliterator(), false
-        ).collect(Collectors.toList());
+        return messageService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Message> findById(@PathVariable int id) {
-        validateId(id);
         return new ResponseEntity<>(
-                this.messageRepository.findById(id).orElseThrow(
+                this.messageService.findById(id).orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 String.format("Message with id %s not found.", id))),
                 HttpStatus.OK);
@@ -47,39 +50,40 @@ public class MessageController {
 
     @PostMapping("/")
     public ResponseEntity<Message> create(@RequestBody Message message) {
-        validateMessage(message);
         return new ResponseEntity<>(
-                this.messageRepository.save(message),
+                this.messageService.create(message),
                 HttpStatus.CREATED
         );
     }
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Message message) {
-        validateMessage(message);
-        this.messageRepository.save(message);
+        messageService.update(message);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        validateId(id);
-        Message message = new Message();
-        message.setId(id);
-        this.messageRepository.delete(message);
+        messageService.delete(id);
         return ResponseEntity.ok().build();
     }
 
-    private void validateMessage(Message message) {
-        if (message.getMessage() == null || message.getPerson() == null
-                || message.getRoom() == null) {
-            throw new NullPointerException("Message: message and person and room mustn't be empty");
+    @PatchMapping("/patch")
+    public MessageDTO patch(@RequestBody MessageDTO dto)
+            throws InvocationTargetException, IllegalAccessException {
+        Optional<Message> target = messageService.findById(dto.getId());
+        if (target.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Message not found");
         }
-    }
-
-    private void validateId(int id) {
-        if (id < 1) {
-            throw new IllegalArgumentException("Message id must not be less than 1");
-        }
+        Message current = target.get();
+        Optional.of(dto.getMessage()).ifPresent(current::setMessage);
+        Optional.of(dto.getPersonId()).ifPresent(
+                id -> personService.findById(id).ifPresentOrElse(
+                        current::setPerson, () -> dto.setPersonId(current.getPerson().getId())));
+        Optional.of(dto.getRoomId()).ifPresent(
+                id -> roomService.findById(id).ifPresentOrElse(
+                        current::setRoom, () -> dto.setRoomId(current.getRoom().getId())));
+        messageService.update(current);
+        return dto;
     }
 }

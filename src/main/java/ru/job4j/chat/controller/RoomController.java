@@ -3,6 +3,7 @@ package ru.job4j.chat.controller;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -11,10 +12,12 @@ import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.model.domain.Message;
 import ru.job4j.chat.model.domain.Room;
 import ru.job4j.chat.model.dto.RoomDTO;
+import ru.job4j.chat.model.validator.Operation;
 import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +26,7 @@ import java.util.stream.StreamSupport;
 
 @Controller
 @RequestMapping("/room")
+@Validated
 public class RoomController {
 
     private static final String API = "http://localhost:8080/message";
@@ -71,7 +75,8 @@ public class RoomController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Room> create(@RequestBody Room room) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Room> create(@Valid @RequestBody Room room) {
         return new ResponseEntity<>(
                 this.roomService.create(room),
                 HttpStatus.CREATED
@@ -79,7 +84,8 @@ public class RoomController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Room room) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody Room room) {
         roomService.update(room);
         return ResponseEntity.ok().build();
     }
@@ -91,7 +97,8 @@ public class RoomController {
     }
 
     @PatchMapping("/patch")
-    public ResponseEntity<RoomDTO> patch(@RequestBody RoomDTO dto)
+    @Validated(Operation.OnPatch.class)
+    public ResponseEntity<RoomDTO> patch(@Valid @RequestBody RoomDTO dto)
             throws InvocationTargetException, IllegalAccessException {
         Optional<Room> target = roomService.findById(dto.getId());
         if (target.isEmpty()) {

@@ -1,6 +1,8 @@
 package ru.job4j.chat.model.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.Objects;
 
 @Entity(name = "u_role")
@@ -8,8 +10,10 @@ import java.util.Objects;
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+        @PositiveOrZero(message = "id must not be negative")
     private int id;
     @Column(unique = true)
+        @NotBlank(message = "role must not be empty")
     private String role;
 
     public static Role of(String role) {

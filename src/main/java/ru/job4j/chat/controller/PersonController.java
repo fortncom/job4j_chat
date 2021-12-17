@@ -2,17 +2,21 @@ package ru.job4j.chat.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.model.domain.Person;
+import ru.job4j.chat.model.validator.Operation;
 import ru.job4j.chat.service.PersonService;
 
+import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
+@Validated
 public class PersonController {
 
     private final PersonService personService;
@@ -36,7 +40,7 @@ public class PersonController {
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
+    public ResponseEntity<Person> create(@Valid @RequestBody Person person) {
         return new ResponseEntity<>(
                 this.personService.create(person),
                 HttpStatus.CREATED
@@ -44,7 +48,7 @@ public class PersonController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
+    public ResponseEntity<Void> update(@Valid @RequestBody Person person) {
         personService.update(person);
         return ResponseEntity.ok().build();
     }
@@ -56,7 +60,7 @@ public class PersonController {
     }
 
     @PatchMapping("/patch")
-    public Person patch(@RequestBody Person donor)
+    public Person patch(@Valid @RequestBody Person donor)
             throws InvocationTargetException, IllegalAccessException {
         Optional<Person> target = personService.findById(donor.getId());
         if (target.isEmpty()) {

@@ -1,6 +1,11 @@
 package ru.job4j.chat.model.domain;
 
+import ru.job4j.chat.model.validator.Operation;
+
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PositiveOrZero;
+import javax.validation.constraints.Size;
 import java.util.Objects;
 
 @Entity(name = "message")
@@ -8,15 +13,26 @@ import java.util.Objects;
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+        @NotNull(message = "Id must be non null", groups = {
+            Operation.OnUpdate.class, Operation.OnDelete.class
+        })
     private int id;
+        @Size(min = 5, max = 1120, message
+            = "Message must be between 5 and 1120 characters")
     private String message;
 
     @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "person_id")
+        @NotNull(message = "person must be non null", groups = {
+            Operation.OnCreate.class, Operation.OnUpdate.class
+        })
     private Person person;
 
     @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "room_id")
+        @NotNull(message = "room must be non null", groups = {
+            Operation.OnCreate.class, Operation.OnUpdate.class
+        })
     private Room room;
 
     public static Message of(int id, String message, Person person, Room room) {

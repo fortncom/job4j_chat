@@ -2,20 +2,25 @@ package ru.job4j.chat.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.model.domain.Message;
 import ru.job4j.chat.model.dto.MessageDTO;
+import ru.job4j.chat.model.validator.Operation;
 import ru.job4j.chat.service.MessageService;
 import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/message")
+@Validated
 public class MessageController {
 
     private final MessageService messageService;
@@ -30,7 +35,7 @@ public class MessageController {
     }
 
     @GetMapping("")
-    public List<Message> findByRoomName(@RequestParam String name) {
+    public List<Message> findByRoomName(@NotBlank @RequestParam String name) {
         return messageService.findByRoomName(name);
     }
 
@@ -49,7 +54,8 @@ public class MessageController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Message> create(@RequestBody Message message) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Message> create(@Valid @RequestBody Message message) {
         return new ResponseEntity<>(
                 this.messageService.create(message),
                 HttpStatus.CREATED
@@ -57,7 +63,8 @@ public class MessageController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Message message) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody Message message) {
         messageService.update(message);
         return ResponseEntity.ok().build();
     }
@@ -69,7 +76,8 @@ public class MessageController {
     }
 
     @PatchMapping("/patch")
-    public MessageDTO patch(@RequestBody MessageDTO dto)
+    @Validated(Operation.OnPatch.class)
+    public MessageDTO patch(@Valid @RequestBody MessageDTO dto)
             throws InvocationTargetException, IllegalAccessException {
         Optional<Message> target = messageService.findById(dto.getId());
         if (target.isEmpty()) {

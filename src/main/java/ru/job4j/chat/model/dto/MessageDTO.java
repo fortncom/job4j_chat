@@ -1,10 +1,22 @@
 package ru.job4j.chat.model.dto;
 
+import ru.job4j.chat.model.validator.Operation;
+
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 public class MessageDTO {
 
+    @NotNull(message = "Id must be non null", groups = {
+            Operation.OnUpdate.class, Operation.OnDelete.class
+    })
     private int id;
+    @Size(min = 5, max = 1120, message
+            = "Message must be between 5 and 1120 characters")
     private String message;
+    @NotNull(message = "personId must be filled")
     private int personId;
+    @NotNull(message = "roomId must be filled")
     private int roomId;
 
     public static MessageDTO of(int id, String message, int personId, int roomId) {

@@ -1,6 +1,9 @@
 package ru.job4j.chat.model.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 import java.util.Objects;
 
@@ -9,9 +12,13 @@ import java.util.Objects;
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+        @PositiveOrZero(message = "id must not be negative")
     private int id;
+
     @Column(unique = true)
+        @NotNull(message = "login cannot be null")
     private String login;
+    @NotBlank(message = "password must not be empty")
     private String password;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})

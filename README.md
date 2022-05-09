@@ -79,30 +79,44 @@ You can create rooms with other users. The rooms can be designed for two users o
 
 *PATCH: /room/patch + body with RoomDTO*
 
-#### Запуск проекта через docker-compose:
+### Запуск проекта через docker-compose:
 
-*1. Собираем проект в jar: 
-mvn install -Dmaven.test.skip=true*
-
-*2. Создаём контейнер с бд: 
-docker run -d \\
---name postgres \\
--e POSTGRES_PASSWORD=password \\
--e PGDATA=/var/lib/postgresql/data/pgdata \\
--p 5432:5432 \\
--v postgres_db:/var/lib/postgresql/data \\
-postgres*
-
-*3. Заходим в контейнер: docker exec -it postgres bash*
-
-*4. Открываем psql от юзера postgres: psql -U postgres*
-
-*5. Создаём бд: CREATE DATABASE chat;*
-
-*6. Выходим из psql и контейнера: exit*
-
-*7. Собираем образ с проектом на основе докер файла: docker build -t chat .*
-
-*8. Запускаем проект через docker-compose: docker-compose up*
-
-Смена фладельца файла на Linux: sudo chown -R $USER <path-to-folder>
+*1. Собираем проект в jar:*
+````
+mvn install -Dmaven.test.skip=true
+````
+*2. Создаём контейнер с бд:*
+````
+docker run -d \
+--name postgres \
+-e POSTGRES_PASSWORD=password \
+-e PGDATA=/var/lib/postgresql/data/pgdata \
+-p 5432:5432 \
+-v postgres_db:/var/lib/postgresql/data \
+postgres
+````
+*3. Заходим в контейнер:*
+````
+docker exec -it postgres bash
+````
+*4. Открываем psql от юзера postgres:*
+````
+psql -U postgres
+````
+*5. Создаём бд:*
+````
+CREATE DATABASE chat;
+````
+*6. Выходим из psql и контейнера:*
+````
+exit
+````
+*7. Собираем образ с проектом на основе докер файла:*
+````
+docker build -t chat .
+````
+*8. Запускаем проект через docker-compose:*
+````
+docker-compose up
+````
+Смена фладельца файла на Linux: ````sudo chown -R $USER <path-to-folder>````

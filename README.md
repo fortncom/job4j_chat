@@ -79,6 +79,8 @@ You can create rooms with other users. The rooms can be designed for two users o
 
 *PATCH: /room/patch + body with RoomDTO*
 
+***
+
 ### Запуск проекта через docker-compose:
 
 *1. Собираем проект в jar:*
@@ -119,4 +121,34 @@ docker build -t chat .
 ````
 docker-compose up
 ````
-Смена фладельца файла на Linux: ````sudo chown -R $USER <path-to-folder>````
+Смена владельца файла на Linux: ````sudo chown -R $USER <path-to-folder>````
+
+***
+
+### Запуск проекта в Kubernetes:
+
+*1. Запускаем кластер kubernetes:*
+````
+minikube start
+````
+
+*2. Привязываем файл postgresdb-secret.yml(для внешнего хранения паролей) к kubernetes:*
+````
+kubectl apply -f postgresdb-secret.yml
+````
+
+*3. Привязываем файл postgresdb-configmap.yml(для конфигурации пода с бд) к kubernetes:*
+````
+kubectl apply -f postgresdb-configmap.yml
+````
+*4. Привязываем файл postgresdb-deployment.yml(конфигурационный файл развертывания для бд) к kubernetes:*
+````
+kubectl apply -f postgresdb-deployment.yml
+````
+
+*5. Привязываем файл chat-deployment.yml(конфигурационный файл развертывания для сервиса chat) к kubernetes:*
+````
+kubectl apply -f chat-deployment.yml
+````
+
+Получение url сервиса для обращения из вне: ````minikube service --url <name-service>````
